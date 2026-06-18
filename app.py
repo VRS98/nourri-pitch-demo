@@ -402,10 +402,10 @@ elif view == "🍳 Recipe Engine":
 <div class="n-header-container">
 <div>
 <div class="n-section-label">Recipe Engine</div>
-<h1 class="n-h1">AI-Generated Recipes</h1>
-<div class="n-subtitle">Rescue your expiring ingredients · Powered by RAG + Claude</div>
+<h1 class="n-h1">Nourri-Powered Recipes</h1>
+<div class="n-subtitle">Delicious, zero-waste meals tailored to what you have right now.</div>
 </div>
-<div class="n-badge">🤖 AI-generated · RAG + Claude</div>
+<div class="n-badge">✨ Nourri Smart Recipes</div>
 </div>
 """, unsafe_allow_html=True)
     
@@ -476,7 +476,7 @@ elif view == "🍳 Recipe Engine":
 <div class="n-card" style="padding:24px; display:flex; align-items:start; gap:16px; background:linear-gradient(135deg, #f0fdf4, #fff); border-left: 4px solid #1c6b42; border-radius: 12px; margin-top: 24px; margin-bottom: 24px;">
     <div style="font-size:24px; margin-top:-4px;">✨</div>
     <div>
-        <div style="font-size:12px; font-weight:800; color:#1c6b42; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">AI Insight</div>
+        <div style="font-size:12px; font-weight:800; color:#1c6b42; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">Nourri Insight</div>
         <div style="color:#0c2218; font-size:14px; line-height:1.6; font-weight:500;">{r['aiNote']}</div>
     </div>
 </div>
@@ -484,9 +484,9 @@ elif view == "🍳 Recipe Engine":
         
         c1, c2 = st.columns([1, 1.5], gap="large")
         with c1:
-            st.markdown('<div class="section-title">Ingredients</div><div class="n-card" style="padding:0; overflow:hidden;">', unsafe_allow_html=True)
+            html_c1 = '<div class="section-title">Ingredients</div><div class="n-card" style="padding:0; overflow:hidden;">'
             for item in r['inFridge']:
-                st.markdown(f"""
+                html_c1 += f"""
 <div style="display:flex; justify-content:space-between; align-items:center; padding:16px; border-bottom:1px solid #f3f4f6;">
     <div style="display:flex; align-items:center; gap:12px;">
         <div style="width:16px; height:16px; border-radius:50%; background:#dcfce7; display:flex; align-items:center; justify-content:center;"><div style="width:6px; height:6px; background:#16a34a; border-radius:50%;"></div></div>
@@ -494,9 +494,9 @@ elif view == "🍳 Recipe Engine":
     </div>
     <span style="font-size:11px; font-weight:600; color:#6b7d72;">In Fridge</span>
 </div>
-""", unsafe_allow_html=True)
+"""
             for item in r['toOrder']:
-                st.markdown(f"""
+                html_c1 += f"""
 <div style="display:flex; justify-content:space-between; align-items:center; padding:16px; border-bottom:1px solid #f3f4f6; background:#fffdfa;">
     <div style="display:flex; align-items:center; gap:12px;">
         <div style="width:16px; height:16px; border-radius:50%; background:#ffedd5; display:flex; align-items:center; justify-content:center;"><div style="width:6px; height:6px; background:#ea580c; border-radius:50%;"></div></div>
@@ -504,8 +504,9 @@ elif view == "🍳 Recipe Engine":
     </div>
     <span style="font-size:10px; font-weight:800; color:#ea580c; background:#fff7ed; padding:4px 8px; border-radius:99px; text-transform:uppercase; letter-spacing:0.05em;">To Order</span>
 </div>
-""", unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
+"""
+            html_c1 += '</div>'
+            st.markdown(html_c1, unsafe_allow_html=True)
             
             if len(r['toOrder']) > 0:
                 if st.button("🛒 Order Missing Ingredients", use_container_width=True, type="primary"):
@@ -513,16 +514,17 @@ elif view == "🍳 Recipe Engine":
                         time.sleep(1.8)
                     st.success("✅ Order placed! Delivery by 14:45")
         with c2:
-            st.markdown('<div class="section-title">Preparation Steps</div><div class="n-card" style="padding:24px;">', unsafe_allow_html=True)
+            html_c2 = '<div class="section-title">Preparation Steps</div><div class="n-card" style="padding:24px;">'
             for i, step in enumerate(r['steps']):
                 border_style = "border-bottom:1px solid #f8fafc;" if i < len(r['steps']) - 1 else ""
-                st.markdown(f"""
+                html_c2 += f"""
 <div style="display:flex; gap:20px; margin-bottom:{'20px' if i < len(r['steps']) - 1 else '0'}; position:relative;">
     <div style="font-size:16px; font-weight:800; color:#cbd5e1; min-width:24px; text-align:right;">0{i+1}</div>
     <div style="font-size:15px; color:#0c2218; line-height:1.6; font-weight:500; flex:1; padding-bottom:{'20px' if i < len(r['steps']) - 1 else '0'}; {border_style}">{step}</div>
 </div>
-""", unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
+"""
+            html_c2 += '</div>'
+            st.markdown(html_c2, unsafe_allow_html=True)
 
 elif view == "🛒 Local Market":
     st.markdown("""
