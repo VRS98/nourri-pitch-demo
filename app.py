@@ -111,7 +111,19 @@ st.markdown("""
 
 /* Hide Streamlit Chrome */
 #MainMenu, footer, .stDeployButton {visibility: hidden; display: none;}
-header { background: transparent !important; }
+header[data-testid="stHeader"] { background: transparent !important; }
+
+/* Sidebar Toggle Fix */
+[data-testid="collapsedControl"] {
+    display: flex !important;
+    background-color: #fff !important;
+    border-radius: 50% !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+    margin: 16px !important;
+}
+[data-testid="collapsedControl"] svg {
+    fill: #0c2218 !important;
+}
 
 /* Global Background */
 .stApp {
@@ -461,36 +473,56 @@ elif view == "🍳 Recipe Engine":
     if st.session_state.selected_recipe is not None:
         r = RECIPES[st.session_state.selected_recipe]
         st.markdown(f"""
-<div style="background:#0c2218; padding:16px 24px; border-radius:16px; margin-top:24px; margin-bottom:24px;">
-<div style="color:#86efac; font-size:14px; font-style:italic; font-weight:500;">
-<span style="font-size:16px; font-style:normal;">✨</span> {r['aiNote']}
-</div>
+<div class="n-card" style="padding:24px; display:flex; align-items:start; gap:16px; background:linear-gradient(135deg, #f0fdf4, #fff); border-left: 4px solid #1c6b42; border-radius: 12px; margin-top: 24px; margin-bottom: 24px;">
+    <div style="font-size:24px; margin-top:-4px;">✨</div>
+    <div>
+        <div style="font-size:12px; font-weight:800; color:#1c6b42; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">AI Insight</div>
+        <div style="color:#0c2218; font-size:14px; line-height:1.6; font-weight:500;">{r['aiNote']}</div>
+    </div>
 </div>
 """, unsafe_allow_html=True)
         
         c1, c2 = st.columns([1, 1.5], gap="large")
         with c1:
-            st.markdown('<h3 style="font-size:16px; margin-bottom:16px; color:#0c2218;">Ingredients</h3>', unsafe_allow_html=True)
+            st.markdown('<div class="section-title">Ingredients</div><div class="n-card" style="padding:0; overflow:hidden;">', unsafe_allow_html=True)
             for item in r['inFridge']:
-                st.markdown(f"""<div style="border:1px solid #bbf7d0; background:#f0fdf4; padding:12px 16px; border-radius:12px; margin-bottom:8px; display:flex; align-items:center; gap:10px;"><span style="font-size:16px;">✅</span><span style="font-weight:600; font-size:13px; color:#15803d;">{item}</span></div>""", unsafe_allow_html=True)
+                st.markdown(f"""
+<div style="display:flex; justify-content:space-between; align-items:center; padding:16px; border-bottom:1px solid #f3f4f6;">
+    <div style="display:flex; align-items:center; gap:12px;">
+        <div style="width:16px; height:16px; border-radius:50%; background:#dcfce7; display:flex; align-items:center; justify-content:center;"><div style="width:6px; height:6px; background:#16a34a; border-radius:50%;"></div></div>
+        <span style="font-weight:600; font-size:14px; color:#0c2218;">{item}</span>
+    </div>
+    <span style="font-size:11px; font-weight:600; color:#6b7d72;">In Fridge</span>
+</div>
+""", unsafe_allow_html=True)
             for item in r['toOrder']:
-                st.markdown(f"""<div style="border:1px solid #fed7aa; background:#fff7ed; padding:12px 16px; border-radius:12px; margin-bottom:8px; display:flex; align-items:center; justify-content:space-between;"><div style="display:flex; align-items:center; gap:10px;"><span style="font-size:16px;">📦</span><span style="font-weight:600; font-size:13px; color:#c2410c;">{item}</span></div><span style="font-size:10px; font-weight:700; color:#ea580c; text-transform:uppercase; letter-spacing:0.05em; background:#ffedd5; padding:4px 8px; border-radius:99px;">to order</span></div>""", unsafe_allow_html=True)
+                st.markdown(f"""
+<div style="display:flex; justify-content:space-between; align-items:center; padding:16px; border-bottom:1px solid #f3f4f6; background:#fffdfa;">
+    <div style="display:flex; align-items:center; gap:12px;">
+        <div style="width:16px; height:16px; border-radius:50%; background:#ffedd5; display:flex; align-items:center; justify-content:center;"><div style="width:6px; height:6px; background:#ea580c; border-radius:50%;"></div></div>
+        <span style="font-weight:600; font-size:14px; color:#0c2218;">{item}</span>
+    </div>
+    <span style="font-size:10px; font-weight:800; color:#ea580c; background:#fff7ed; padding:4px 8px; border-radius:99px; text-transform:uppercase; letter-spacing:0.05em;">To Order</span>
+</div>
+""", unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
             
             if len(r['toOrder']) > 0:
-                st.markdown("<br>", unsafe_allow_html=True)
-                if st.button("Order Missing Ingredients", use_container_width=True, type="primary"):
+                if st.button("🛒 Order Missing Ingredients", use_container_width=True, type="primary"):
                     with st.spinner("Ordering from local partners..."):
                         time.sleep(1.8)
                     st.success("✅ Order placed! Delivery by 14:45")
         with c2:
-            st.markdown('<h3 style="font-size:16px; margin-bottom:16px; color:#0c2218;">Steps</h3>', unsafe_allow_html=True)
+            st.markdown('<div class="section-title">Preparation Steps</div><div class="n-card" style="padding:24px;">', unsafe_allow_html=True)
             for i, step in enumerate(r['steps']):
+                border_style = "border-bottom:1px solid #f8fafc;" if i < len(r['steps']) - 1 else ""
                 st.markdown(f"""
-<div style="display:flex; gap:16px; margin-bottom:16px;">
-<div style="width:24px; height:24px; border-radius:50%; background:#1c6b42; color:white; font-weight:700; font-size:12px; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px;">{i+1}</div>
-<div style="font-size:14px; color:#0c2218; line-height:1.6; font-weight:500;">{step}</div>
+<div style="display:flex; gap:20px; margin-bottom:{'20px' if i < len(r['steps']) - 1 else '0'}; position:relative;">
+    <div style="font-size:16px; font-weight:800; color:#cbd5e1; min-width:24px; text-align:right;">0{i+1}</div>
+    <div style="font-size:15px; color:#0c2218; line-height:1.6; font-weight:500; flex:1; padding-bottom:{'20px' if i < len(r['steps']) - 1 else '0'}; {border_style}">{step}</div>
 </div>
 """, unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
 
 elif view == "🛒 Local Market":
     st.markdown("""
