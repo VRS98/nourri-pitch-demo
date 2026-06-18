@@ -531,34 +531,41 @@ elif view == "🛒 Local Market":
 <div class="n-header-container">
 <div>
 <div class="n-section-label">Local Market</div>
-<h1 class="n-h1">Autonomous Replenishment</h1>
-<div class="n-subtitle">AI agent monitors your inventory and orders from local farms</div>
+<h1 class="n-h1">Nourri Smart Restock</h1>
+<div class="n-subtitle">Seamlessly replenish your kitchen with fresh, local ingredients before you run out.</div>
 </div>
-<div class="n-badge">⚡ ReAct Agent · Supervisor Pattern</div>
+<div class="n-badge">🌿 Nourri Auto-Pilot</div>
 </div>
 """, unsafe_allow_html=True)
     
     # Auto Mode Toggle
-    auto_bg = "linear-gradient(135deg, #0c2218, #1a4331)" if st.session_state.auto_mode else "#fff"
-    auto_text = "Autonomous mode enabled — agent is monitoring your inventory" if st.session_state.auto_mode else "Enable to let AI track your staples and auto-order when stock is low"
-    auto_col = "#86efac" if st.session_state.auto_mode else "#6b7d72"
-    auto_title = "#fff" if st.session_state.auto_mode else "#0c2218"
+    auto_bg = "linear-gradient(135deg, #f0fdf4, #dcfce7)" if st.session_state.auto_mode else "linear-gradient(135deg, #fff, #fafaf8)"
+    auto_border = "#86efac" if st.session_state.auto_mode else "#dde4df"
+    auto_text = "Your kitchen is on auto-pilot. We'll ensure you never run out of essentials." if st.session_state.auto_mode else "Turn on Auto-Pilot to let Nourri automatically order essentials from local farms when stock runs low."
+    auto_col = "#15803d" if st.session_state.auto_mode else "#6b7d72"
+    auto_title = "#0c2218"
+    icon = "✨" if st.session_state.auto_mode else "⚡"
     
     st.markdown(f"""
-<div class="n-card" style="background:{auto_bg}; border-color:{'transparent' if st.session_state.auto_mode else '#dde4df'}; transition:all 0.4s;">
-<h3 style="margin:0 0 8px 0; color:{auto_title};">⚡ Autonomous Replenishment Mode</h3>
-<p style="margin:0; color:{auto_col}; font-weight:500; font-size:14px;">{auto_text}</p>
+<div class="n-card" style="background:{auto_bg}; border: 1px solid {auto_border}; padding: 24px 24px 16px 24px; margin-bottom: 8px;">
+<div style="display:flex; align-items:start; gap:16px;">
+    <div style="font-size:28px; line-height:1;">{icon}</div>
+    <div>
+        <h3 style="margin:0 0 8px 0; color:{auto_title}; font-size:18px; font-weight:700;">Nourri Auto-Pilot</h3>
+        <p style="margin:0; color:{auto_col}; font-weight:500; font-size:14px; line-height:1.5;">{auto_text}</p>
+    </div>
+</div>
 </div>
 """, unsafe_allow_html=True)
     
-    st.session_state.auto_mode = st.toggle("Enable Replenishment Mode", value=st.session_state.auto_mode)
+    st.session_state.auto_mode = st.toggle("Enable Nourri Auto-Pilot", value=st.session_state.auto_mode)
     
     if st.session_state.auto_mode:
         # Smart Basket
         st.markdown("""
-<div class="n-card" style="background:#f0fdf4; border: 2px dashed #86efac;">
-<h4 style="margin:0 0 16px 0; color:#15803d; font-size:15px;">🛒 Smart Basket — AI-selected items</h4>
-<div style="background:#fff; border:1px solid #bbf7d0; border-radius:12px; padding:16px;">
+<div class="n-card" style="background:#fff; border-top: 4px solid #1c6b42;">
+<h4 style="margin:0 0 20px 0; color:#0c2218; font-size:16px;">🛒 Your Curated Basket</h4>
+<div style="background:#fafaf8; border:1px solid #e5e7eb; border-radius:12px; padding:16px;">
 <div style="display:flex; justify-content:space-between; margin-bottom:12px; font-size:14px; color:#0c2218; font-weight:500;">
 <span>🥬 Baby Spinach 300g <span style="color:#6b7d72; font-size:12px; margin-left:8px;">Radicle Urban Farms</span></span> <b>€2.80</b>
 </div>
@@ -579,14 +586,14 @@ elif view == "🛒 Local Market":
         # Agent Trace Panel
         st.markdown("""
 <div class="n-card" style="padding:0; overflow:hidden;">
-<div style="padding:20px; border-bottom:1px solid #dde4df; display:flex; justify-content:space-between; align-items:center;">
-<h3 style="margin:0; font-size:16px; color:#0c2218;">🤖 Nourri Replenishment Agent v1.2</h3>
-<span class="n-badge">ReAct Pattern · Supervisor/Worker</span>
+<div style="padding:20px; border-bottom:1px solid #dde4df; display:flex; justify-content:space-between; align-items:center; background:#fafaf8;">
+<h3 style="margin:0; font-size:16px; color:#0c2218; font-weight:700;">✨ Nourri Order Processing</h3>
+<span class="n-badge" style="background:#dcfce7; color:#15803d;">Auto-Pilot Active</span>
 </div>
 <div style="padding:24px;" id="agent-container">
 """, unsafe_allow_html=True)
         
-        if st.button("▶ Run Replenishment Agent", disabled=st.session_state.agent_done):
+        if st.button("▶ Confirm & Process Order", disabled=st.session_state.agent_done, type="primary"):
             placeholders = [st.empty() for _ in range(5)]
             audit_placeholder = st.empty()
             
@@ -629,15 +636,15 @@ confidence=0.94  order_id=NR-20260617-0891  status=COMPLETED  duration=6.1s
 [CARBON]      tokens_per_run=4,847  energy=0.0015 kWh  co2eq=0.090 gCO₂eq
 [EXPLAINABILITY] trace_completeness=100%  user_explanation=clear (10/10)
 </div>
-<div style="background:linear-gradient(135deg, #0c2218, #1a4331); padding:16px; border-radius:12px; margin-top:20px; color:white; font-weight:600; font-size:14px; text-align:center;">
-🎉 Agent completed successfully · Order NR-20260617-0891 confirmed · Delivery by 14:45
+<div style="background:linear-gradient(135deg, #1c6b42, #155235); padding:16px; border-radius:12px; margin-top:20px; color:white; font-weight:600; font-size:14px; text-align:center; box-shadow:0 4px 12px rgba(28,107,66,0.2);">
+🎉 Order processed successfully · Ref NR-20260617-0891 confirmed · Delivery by 14:45
 </div>
 """, unsafe_allow_html=True)
                 
         st.markdown("</div></div>", unsafe_allow_html=True) # Close agent container & card
         
     # Partners Grid
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown('<div class="section-title" style="margin-top:32px;">Our Local Farm Partners</div>', unsafe_allow_html=True)
     cols = st.columns(2, gap="large")
     partners = [
         ("🏙️", "Radicle Urban Farms", "4km", "Zero-Pesticide", "4.8★", "1.8kg"),
