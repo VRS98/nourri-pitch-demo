@@ -161,11 +161,17 @@ div[role="radiogroup"] > label > div:first-child { display: none; /* hide radio 
 div[role="radiogroup"] > label span { font-weight: 600 !important; color: white !important; font-size: 15px;}
 
 /* Buttons */
-div.stButton > button {
+div.stButton > button[kind="primary"] {
     background-color: #1c6b42; color: #fff; border: none; border-radius: 12px;
     font-weight: 600; padding: 8px 16px; transition: all 0.3s;
 }
-div.stButton > button:hover { background-color: #155235; color: #fff;}
+div.stButton > button[kind="primary"]:hover { background-color: #155235; color: #fff;}
+
+div.stButton > button[kind="secondary"] {
+    background-color: transparent; color: #6b7d72; border: 1px solid #dde4df; border-radius: 8px;
+    font-weight: 600; padding: 6px 12px; font-size: 13px; transition: all 0.3s;
+}
+div.stButton > button[kind="secondary"]:hover { background-color: #f3f4f6; color: #0c2218;}
 
 /* Cards */
 .n-card {
@@ -222,7 +228,7 @@ with st.sidebar:
 <div style="color:#3a7a55; font-size:11px; font-weight:700; letter-spacing:0.1em; margin-bottom:8px; margin-left:8px;">NAVIGATION</div>
 """, unsafe_allow_html=True)
     
-    view = st.radio("Navigation", ["🏠 Homepage", "🍳 Recipe Engine", "🛒 Local Market"], label_visibility="collapsed")
+    view = st.radio("Navigation", ["📷 Smart Scanner", "🍳 Recipe Engine", "🛒 Local Market"], label_visibility="collapsed")
     
     st.markdown("<br><br>", unsafe_allow_html=True)
     st.markdown("""
@@ -247,12 +253,12 @@ def get_exp_style(days):
     return "#16a34a", "#f0fdf4", "#bbf7d0", f"{days} days"
 
 # --- MAIN ---
-if view == "🏠 Homepage":
+if view == "📷 Smart Scanner":
     st.markdown("""
 <div class="n-header-container">
 <div>
 <div class="n-section-label">Homepage</div>
-<h1 class="n-h1">Your Smart Kitchen</h1>
+<h1 class="n-h1">Smart Scanner</h1>
 <div class="n-subtitle">Turn everyday ingredients into culinary magic while tracking your positive impact.</div>
 </div>
 </div>
@@ -292,7 +298,7 @@ if view == "🏠 Homepage":
                 st.image(uploaded, width=400)
             
             st.markdown("<br>", unsafe_allow_html=True)
-            if st.button("🔍 Run Demo Scan", use_container_width=True) or uploaded:
+            if st.button("🔍 Run Demo Scan", use_container_width=True, type="primary") or uploaded:
                 with st.spinner("Analysing with computer vision · detecting items, expiry & nutrition..."):
                     time.sleep(2)
                     st.session_state.scanned = True
@@ -337,6 +343,11 @@ if view == "🏠 Homepage":
 </table>
 </div>
 """, unsafe_allow_html=True)
+            
+            if st.button("🔄 Scan Another Fridge", type="secondary"):
+                st.session_state.scanned = False
+                st.session_state.inventory = []
+                st.rerun()
 
     with col_right:
         st.markdown('<div class="section-title">Previously Bought Items</div>', unsafe_allow_html=True)
@@ -456,7 +467,7 @@ elif view == "🍳 Recipe Engine":
             btn_c1, btn_c2 = st.columns([1, 1])
             with btn_c1:
                 btn_label = "✕ Close" if st.session_state.selected_recipe == idx else "View Recipe"
-                if st.button(btn_label, key=f"btn_{idx}", use_container_width=True):
+                if st.button(btn_label, key=f"btn_{idx}", use_container_width=True, type="primary"):
                     st.session_state.selected_recipe = None if st.session_state.selected_recipe == idx else idx
                     st.rerun()
             with btn_c2:
@@ -587,13 +598,13 @@ elif view == "🛒 Local Market":
         st.markdown("""
 <div class="n-card" style="padding:0; overflow:hidden;">
 <div style="padding:20px; border-bottom:1px solid #dde4df; display:flex; justify-content:space-between; align-items:center; background:#fafaf8;">
-<h3 style="margin:0; font-size:16px; color:#0c2218; font-weight:700;">✨ Nourri Order Processing</h3>
+<h3 style="margin:0; font-size:16px; color:#0c2218; font-weight:700;">How Nourri Decides</h3>
 <span class="n-badge" style="background:#dcfce7; color:#15803d;">Auto-Pilot Active</span>
 </div>
 <div style="padding:24px;" id="agent-container">
 """, unsafe_allow_html=True)
         
-        if st.button("▶ Confirm & Process Order", disabled=st.session_state.agent_done, type="primary"):
+        if st.button("✨ Let Nourri Handle It", disabled=st.session_state.agent_done, type="primary"):
             placeholders = [st.empty() for _ in range(5)]
             audit_placeholder = st.empty()
             
@@ -639,7 +650,21 @@ confidence=0.94  order_id=NR-20260617-0891  status=COMPLETED  duration=6.1s
 <div style="background:linear-gradient(135deg, #1c6b42, #155235); padding:16px; border-radius:12px; margin-top:20px; color:white; font-weight:600; font-size:14px; text-align:center; box-shadow:0 4px 12px rgba(28,107,66,0.2);">
 🎉 Order processed successfully · Ref NR-20260617-0891 confirmed · Delivery by 14:45
 </div>
+<div style="background: linear-gradient(135deg, #0c2218, #1c6b42); color: white; text-align: center; padding: 32px; border-radius: 20px; margin-top: 24px;">
+    <div style="color: #86efac; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px;">Done in 6 seconds ✨</div>
+    <div style="font-size: 26px; font-weight: 800;">€10.80 restocked · 2.6 kg CO₂e prevented</div>
+    <div style="color: #86efac; font-size: 13px; margin-top: 8px;">Nourri ordered from 2 local farms — no action needed from you</div>
+    <div style="display: flex; justify-content: center; gap: 12px; margin-top: 20px;">
+        <span style="background: rgba(255,255,255,0.15); border-radius: 99px; padding: 6px 14px; font-size: 12px; font-weight: 600;">✅ All safety checks passed</span>
+        <span style="background: rgba(255,255,255,0.15); border-radius: 99px; padding: 6px 14px; font-size: 12px; font-weight: 600;">🌿 Sourced locally</span>
+        <span style="background: rgba(255,255,255,0.15); border-radius: 99px; padding: 6px 14px; font-size: 12px; font-weight: 600;">⚡ Fully autonomous</span>
+    </div>
+</div>
 """, unsafe_allow_html=True)
+                
+            if st.button("↺ Run Again", type="secondary"):
+                st.session_state.agent_done = False
+                st.rerun()
                 
         st.markdown("</div></div>", unsafe_allow_html=True) # Close agent container & card
         
