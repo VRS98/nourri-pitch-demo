@@ -99,7 +99,7 @@ AGENT_STEPS = [
 ]
 
 # --- STATE INITIALIZATION ---
-defaults = {"scanned": False, "inventory": [], "selected_recipe": None, "auto_mode": False, "agent_done": False, "favorites": set()}
+defaults = {"scanned": False, "inventory": [], "selected_recipe": None, "auto_mode": False, "agent_done": False, "favorites": set(), "nav_view": "📷 Smart Scanner"}
 for k, v in defaults.items():
     if k not in st.session_state:
         st.session_state[k] = v
@@ -228,7 +228,7 @@ with st.sidebar:
 <div style="color:#3a7a55; font-size:11px; font-weight:700; letter-spacing:0.1em; margin-bottom:8px; margin-left:8px;">NAVIGATION</div>
 """, unsafe_allow_html=True)
     
-    view = st.radio("Navigation", ["📷 Smart Scanner", "🍳 Recipe Engine", "🛒 Local Market"], label_visibility="collapsed")
+    view = st.radio("Navigation", ["📷 Smart Scanner", "🍳 Recipe Engine", "🛒 Local Market"], label_visibility="collapsed", key="nav_view")
     
     st.markdown("<br><br>", unsafe_allow_html=True)
     st.markdown("""
@@ -342,11 +342,16 @@ if view == "📷 Smart Scanner":
 </table>
 </div>
 """, unsafe_allow_html=True)
-            
-            if st.button("🔄 Scan Another Fridge", type="secondary"):
-                st.session_state.scanned = False
-                st.session_state.inventory = []
-                st.rerun()
+            c1, c2, c3 = st.columns([1.2, 1.2, 2])
+            with c1:
+                if st.button("🔄 Scan Another", type="secondary", use_container_width=True):
+                    st.session_state.scanned = False
+                    st.session_state.inventory = []
+                    st.rerun()
+            with c2:
+                if st.button("🍳 Cook with Nourri ✨", type="primary", use_container_width=True):
+                    st.session_state.nav_view = "🍳 Recipe Engine"
+                    st.rerun()
 
     with col_right:
         st.markdown('<div class="section-title">Previously Bought Items</div>', unsafe_allow_html=True)
