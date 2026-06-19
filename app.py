@@ -310,7 +310,7 @@ if view == "📷 Smart Scanner":
 <div style="background:#0c2218; color:#fff; padding:20px 24px; border-radius:16px; margin-bottom:24px; display:flex; align-items:center; gap:16px;">
 <div style="font-size:28px;">✅</div>
 <div>
-<div style="font-size:16px; font-weight:700;">10 items detected · Confidence avg 96.3%</div>
+<div style="font-size:16px; font-weight:700;">10 items detected · Ready for culinary magic ✨</div>
 <div style="font-size:13px; color:#86efac; margin-top:4px;">3 items flagged as expiring within 48h · 8.1 kg CO₂e total footprint tracked</div>
 </div>
 </div>
@@ -330,14 +330,13 @@ if view == "📷 Smart Scanner":
 <td><span class="exp-pill" style="background:{pill_bg}; color:{dot_col}; border:1px solid {pill_border};">{pill_lbl}</span></td>
 <td><div class="co2-bar-bg"><div class="co2-bar-fg" style="width:{co2_pct}%"></div></div><span style="font-size:11px; color:#6b7d72; font-weight:600;">{item['co2']}kg</span></td>
 <td><div class="ns-badge" style="background:{ns_bg};">{item['ns']}</div></td>
-<td><span style="color:#6b7d72;">{item['conf']}%</span></td>
 </tr>"""
             
             st.markdown(f"""
 <div class="n-card" style="padding:0; overflow:hidden;">
 <table class="inv-table">
 <thead style="background:#fafaf8;">
-<tr><th>Item</th><th>Category</th><th>Expires</th><th>CO₂ / item</th><th>Nutri-Score</th><th>CV Conf.</th></tr>
+<tr><th>Item</th><th>Category</th><th>Expires</th><th>CO₂ / item</th><th>Nutri-Score</th></tr>
 </thead>
 <tbody>{rows}</tbody>
 </table>
