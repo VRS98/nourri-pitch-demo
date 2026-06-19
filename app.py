@@ -163,7 +163,7 @@ div[role="radiogroup"] > label span { font-weight: 600 !important; color: white 
 /* Buttons */
 div.stButton > button[kind="primary"] {
     background-color: #1c6b42; color: #fff; border: none; border-radius: 12px;
-    font-weight: 600; padding: 8px 16px; transition: all 0.3s;
+    font-weight: 600; padding: 8px 16px; transition: all 0.3s; white-space: nowrap;
 }
 div.stButton > button[kind="primary"]:hover { background-color: #155235; color: #fff;}
 
@@ -342,16 +342,17 @@ if view == "📷 Smart Scanner":
 </table>
 </div>
 """, unsafe_allow_html=True)
-            c1, c2, c3 = st.columns([1.2, 1.2, 2])
+            def go_to_recipes():
+                st.session_state.nav_view = "🍳 Recipe Engine"
+                
+            c1, c2, c3 = st.columns([1.5, 1.5, 1.5])
             with c1:
-                if st.button("🔄 Scan Another", type="secondary", use_container_width=True):
+                if st.button("🔄 Scan Another", type="primary", use_container_width=True):
                     st.session_state.scanned = False
                     st.session_state.inventory = []
                     st.rerun()
             with c2:
-                if st.button("🍳 Cook with Nourri ✨", type="primary", use_container_width=True):
-                    st.session_state.nav_view = "🍳 Recipe Engine"
-                    st.rerun()
+                st.button("🍳 Cook with Nourri ✨", type="primary", use_container_width=True, on_click=go_to_recipes)
 
     with col_right:
         st.markdown('<div class="section-title">Previously Bought Items</div>', unsafe_allow_html=True)
@@ -524,10 +525,58 @@ elif view == "🍳 Recipe Engine":
             st.markdown(html_c1, unsafe_allow_html=True)
             
             if len(r['toOrder']) > 0:
-                if st.button("🛒 Order Missing Ingredients", use_container_width=True, type="primary"):
-                    with st.spinner("Ordering from local partners..."):
-                        time.sleep(1.8)
+                summary_key = f"show_order_summary_{st.session_state.selected_recipe}"
+                placed_key = f"order_placed_{st.session_state.selected_recipe}"
+                
+                if st.session_state.get(placed_key, False):
                     st.success("✅ Order placed! Delivery by 14:45")
+                elif st.session_state.get(summary_key, False):
+                    # Build summary table HTML
+                    total_cost = 0.0
+                    rows_html = ""
+                    for item in r['toOrder']:
+                        price = 3.20 # Mock price
+                        total_cost += price
+                        rows_html += f"""
+<tr style="border-bottom:1px solid #f9f9f9;">
+<td style="padding:8px 0; color:#0c2218;">{item}</td>
+<td style="padding:8px 0; color:#0c2218; text-align:right;">€{price:.2f}</td>
+</tr>
+"""
+                    summary_html = f"""
+<div class="n-card" style="padding:16px; margin-bottom:16px; border:1px solid #dde4df; border-radius:12px; background:#fff;">
+<h4 style="margin:0 0 4px 0; color:#0c2218; font-size:16px;">Order Summary</h4>
+<p style="font-size:13px; color:#6b7d72; margin:0 0 16px 0;">Ordering from <strong style="color:#1c6b42;">Radicle Urban Farms</strong></p>
+<table style="width:100%; font-size:14px; text-align:left; border-collapse:collapse; margin-bottom:4px;">
+<tr style="border-bottom:1px solid #eee;">
+<th style="padding:8px 0; color:#0c2218; font-weight:600;">Item</th>
+<th style="padding:8px 0; color:#0c2218; font-weight:600; text-align:right;">Est. Cost</th>
+</tr>
+{rows_html}
+<tr>
+<td style="padding:12px 0 4px 0; font-weight:800; color:#0c2218; font-size:15px;">Total</td>
+<td style="padding:12px 0 4px 0; font-weight:800; color:#0c2218; text-align:right; font-size:15px;">€{total_cost:.2f}</td>
+</tr>
+</table>
+</div>
+"""
+                    st.markdown(summary_html, unsafe_allow_html=True)
+
+                    col_conf1, col_conf2 = st.columns(2)
+                    with col_conf1:
+                        if st.button("Go Back", type="secondary", use_container_width=True):
+                            st.session_state[summary_key] = False
+                            st.rerun()
+                    with col_conf2:
+                        if st.button("Confirm Order", type="primary", use_container_width=True):
+                            st.session_state[placed_key] = True
+                            st.session_state[summary_key] = False
+                            st.rerun()
+                else:
+                    if st.button("🛒 Order Missing Ingredients", use_container_width=True, type="primary"):
+                        st.session_state[summary_key] = True
+                        st.session_state[placed_key] = False
+                        st.rerun()
         with c2:
             html_c2 = '<div class="section-title">Preparation Steps</div><div class="n-card" style="padding:24px;">'
             for i, step in enumerate(r['steps']):
@@ -556,7 +605,7 @@ elif view == "🛒 Local Market":
     # Auto Mode Toggle
     auto_bg = "linear-gradient(135deg, #f0fdf4, #dcfce7)" if st.session_state.auto_mode else "linear-gradient(135deg, #fff, #fafaf8)"
     auto_border = "#86efac" if st.session_state.auto_mode else "#dde4df"
-    auto_text = "Your kitchen is on auto-pilot. We'll ensure you never run out of essentials." if st.session_state.auto_mode else "Turn on Auto-Pilot to let Nourri automatically order essentials from local farms when stock runs low."
+    auto_text = "Your Kitchen is on Autopilot mode. Nourri will periodically check inventory and order from local markets when stocks run low. Don't worry, you'll be notified for order sizes exceeding your configured limit, these will be placed only on approval." if st.session_state.auto_mode else "Turn on Auto-Pilot to let Nourri automatically order essentials from local farms when stock runs low."
     auto_col = "#15803d" if st.session_state.auto_mode else "#6b7d72"
     auto_title = "#0c2218"
     icon = "✨" if st.session_state.auto_mode else "⚡"
@@ -573,9 +622,9 @@ elif view == "🛒 Local Market":
 </div>
 """, unsafe_allow_html=True)
     
-    st.session_state.auto_mode = st.toggle("Enable Nourri Auto-Pilot", value=st.session_state.auto_mode)
+    st.toggle("Enable Nourri Auto-Pilot", key="auto_mode")
     
-    if st.session_state.auto_mode:
+    if False:
         # Smart Basket
         st.markdown("""
 <div class="n-card" style="background:#fff; border-top: 4px solid #1c6b42;">
