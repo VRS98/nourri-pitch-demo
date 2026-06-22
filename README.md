@@ -4,12 +4,90 @@ This repository contains the MVP for Nourri's **Missing Ingredient Ordering Agen
 
 This agent uses LangGraph, Gemini, and Streamlit to orchestrate a workflow that:
 1. Takes a list of missing ingredients as input.
-2. Sourced items from local producers (or falls back to supermarkets).
+2. Sources items from local producers (or falls back to supermarkets).
 3. Evaluates total price and applies a Human-in-the-Loop (HITL) guardrail before placing the order.
+
+## Deliverable 1 — Agentic Workflow
+
+**Decision sequence:** When a user selects a recipe with missing ingredients, the agent sources each item from local producers, falls back to supermarkets when a local producer doesn't have it, totals the basket, and stops for human approval before placing the order.
+
+**Why an agent, not a pure workflow:** The model decides at runtime — for each ingredient it reads the local-producer result and judges whether to fall back to a supermarket, rather than following a hardcoded if-then. (Honestly, the core is close to a *routing* workflow; the agentic part is that per-ingredient runtime judgement.)
+
+**Anthropic pattern:** Autonomous agent — a bounded tool-use loop in which the LLM chooses which tool to call per ingredient and when to stop.
+
+**Architecture (see Deliverable 2):** ReAct — a single agent that reasons and acts in a loop over its tools (`agent → tools → agent` in [agent/graph.py](agent/graph.py)).
+
+**Success metric (measured by the test suite):** ≥ 90% of missing ingredients sourced (local or fallback), total computed, and the HITL gate reached in < 30 s per run.
+
+**Selection criteria check:** high frequency (every cook session) · bounded decision space (two tools, finite outcomes) · measurable success (coverage % + latency) · recoverable failure (no order is placed without explicit human confirmation).
+
+## Deliverable 2 — Architecture
+
+**Architecture:** ReAct (single agent). Control-flow signature: a **reason → act → observe** loop — one agent thinks, calls a tool, reads the result, and repeats until the basket is complete.
+
+**Diagram (this instance — mirrors [agent/graph.py](agent/graph.py)):**
+
+```mermaid
+flowchart TD
+    A([START · missing ingredients]) --> V["validate<br/>input-validation guardrail"]
+    V -->|invalid| E1([END · error returned])
+    V -->|valid| AG["agent · ReAct loop<br/>LLM reasons, picks a tool"]
+    AG -->|tool call| T["tools<br/>check_local_producer<br/>check_supermarket_fallback"]
+    T --> AG
+    AG -->|no more tools| PC["process_cart<br/>aggregate items + total price"]
+    PC -. HITL gate · interrupt_before .-> EX["execute<br/>place order"]
+    EX --> E2([END · order placed / cancelled])
+```
+
+The dashed edge is the **Human-in-the-Loop gate**: the graph is compiled with `interrupt_before=["execute"]`, so it halts after `process_cart` and resumes only on explicit user approval (see Deliverable 6).
+
+**Justification (2 lines):** ReAct fits a bounded, two-tool sourcing job — one agent loops over its tools with model-driven judgement for the local→fallback decision, with no orchestration overhead. We deliberately avoid the multi-agent setup the brief warns against ("multi-agent for the sake of it").
+
+**Trade-off accepted:** Limited parallelism, and a single agent grows brittle as the tool count grows — acceptable at two tools; we'd revisit (e.g. a supervisor) only if the tool surface expands in V1.
+
+## Deliverable 3 — Tool & MCP Stack
+
+**Framework — LangGraph** (declared in [requirements.txt](requirements.txt)). It gives us a state graph with native human-in-the-loop (`interrupt_before`), which maps directly onto our `validate → agent ⇄ tools → process_cart → execute` flow.
+
+**Model**
+
+| Model | Role | Where in code | Justification |
+|---|---|---|---|
+| `gemini-2.0-flash` | The single ReAct agent's reasoning + tool-selection model | `MODEL_NAME` in [agent/llm.py](agent/llm.py), used by `create_agent_graph()` | Best cost/latency/quality for low-volume orchestration over two tools; a frontier "flash" tier is plenty for a bounded routing decision. |
+| Deterministic **mock** | Offline stand-in so tests + demo run with no API key | `MockSourcingLLM` in [agent/llm.py](agent/llm.py) | Reviewer can run in <10 min with no secrets; real Gemini is used automatically when `GEMINI_API_KEY` is set. |
+
+An SLM-substitution comparison for the sourcing call is measured in the carbon test (Deliverable 7).
+
+**MCP server — `nourri-sourcing-catalog`** (FastMCP). Built in [mcp_server/catalog_server.py](mcp_server/catalog_server.py); the connection config is committed at [mcp_server/mcp_config.json](mcp_server/mcp_config.json).
+
+- **Tools exposed:** `check_local_producer`, `check_supermarket_fallback`.
+- **Permissions:** read-only (catalog lookups). The server has **no** write/order capability — ordering stays behind the in-app HITL gate.
+- **Scopes:** `catalog:read`.
+- **Rate limits (declared):** 60 req/min · max 4 concurrent sessions · 10 s timeout.
+- **How the agent connects:** [agent/tools.py](agent/tools.py) `get_tools()` loads the MCP tools via [agent/mcp_client.py](agent/mcp_client.py) (spawned over stdio); if the server is unreachable it **falls back to in-process tools** and logs which path was taken to `/traces/`. Run the server standalone with `python -m mcp_server.catalog_server`.
+
+## Deliverable 4 — Working Agent Implementation
+
+The agent runs end-to-end in code. **See it live** in the Streamlit app under **Local Market → Live Ordering Agent** ([live_agent_panel.py](live_agent_panel.py)): enter missing ingredients, watch the agent source them, then approve at the HITL gate. Headless logic is in [agent/graph.py](agent/graph.py) + [agent/runner.py](agent/runner.py).
+
+How it meets the "minimum bar for working":
+
+| Requirement | Evidence |
+|---|---|
+| Runs end-to-end (real input → real output) | Ingredient list → structured cart + placed order ([agent/runner.py](agent/runner.py)) |
+| ≥ 2 tool / MCP calls per run | `check_local_producer` then `check_supermarket_fallback` for unavailable items |
+| Reads from an external source | MCP catalog server (or in-process catalog fallback), not hardcoded in the prompt |
+| Structured output | `cart` = list of `{ingredient, source, price, channel}` + `total_price` |
+| Handles a failure mode | MCP unreachable → graceful fallback to in-process tools; invalid input → guardrail error, no crash |
+| Logs every tool call | `tool.call` / `tool.result` / `cart.compiled` / `order.placed` lines in `/traces/agent_log.jsonl` |
+| No hardcoded secrets | model key via `GEMINI_API_KEY`; mock used when absent |
+
+Verified by [tests/test_agent_smoke.py](tests/test_agent_smoke.py) (run/approve, cancel, guardrail).
 
 ## Project Structure
 - `app.py`: Streamlit frontend for the demo.
-- `agent/`: LangGraph orchestrator and tool definitions.
+- `agent/`: LangGraph orchestrator (`graph.py`), model factory (`llm.py`), tools + MCP loader (`tools.py`, `mcp_client.py`), shared catalog (`catalog.py`), tracing (`trace.py`).
+- `mcp_server/`: FastMCP catalog server (`catalog_server.py`) + connection config (`mcp_config.json`).
 - `guardrails/`: Input validation and HITL checks.
 - `skills/`: The procedural SKILL.md specifying agent logic.
 - `tests/`: Scripts for testing robustness, bias, carbon, and explainability.

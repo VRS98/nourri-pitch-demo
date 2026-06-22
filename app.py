@@ -90,13 +90,6 @@ RECIPES = [
     }
 ]
 
-AGENT_STEPS = [
-  {"label": "STEP 1 / 5 — Analyzing inventory...", "icon": "📋", "call": 'check_inventory_levels(user_id="user_001")', "response": '{"spinach":{"qty":"200g","days_left":1,"status":"⚠ CRITICAL"},"oat_milk":{"qty":"0.3L","days_left":3,"status":"⚠ LOW"},"eggs":{"qty":"2 eggs","days_left":10,"status":"⚠ LOW"}}', "insight": "⚡ Identified 3 deficit items — replenishment needed within 4 days", "delay": 1.3},
-  {"label": "STEP 2 / 5 — Forecasting consumption...", "icon": "📈", "call": 'get_consumption_forecast(user_id="user_001", horizon="7_days")', "response": '{"oat_milk":"2.1 L/week","eggs":"6/week","leafy_greens":"280g/week","model_confidence":0.91}', "insight": "📊 Forecast confirms: current stock covers < 1 day of demand", "delay": 1.1},
-  {"label": "STEP 3 / 5 — Querying farm partners...", "icon": "🌾", "call": 'query_farm_partners(location="Paris 11e", items=["baby_spinach","oat_milk","eggs"], max_km=20)', "response": '{"Radicle Urban Farms (4km)":{"baby_spinach":"300g→€2.80","oat_milk":"2×1L→€3.80","co2_saved":"1.8kg"},"Green Valley Cooperative (12km)":{"eggs":"12-pack→€4.20","co2_saved":"0.8kg"}}', "insight": "🌿 2 trusted partners · 3 items · combined CO₂ saving: 2.6 kg", "delay": 1.5},
-  {"label": "STEP 4 / 5 — Running guardrails...", "icon": "🛡️", "guardrails": True, "delay": 1.8},
-  {"label": "STEP 5 / 5 — Placing order...", "icon": "✅", "call": 'place_order(items=["baby_spinach_300g","oat_milk_2L","eggs_12pack"], payment="card_****4521", delivery="asap")', "response": '{"order_id":"NR-20260617-0891","status":"CONFIRMED","eta":"~2 hours","total":"€10.80","co2_saved":"2.6kg"}', "insight": "🎉 Order NR-20260617-0891 confirmed · Delivery by 14:45 · €10.80 · 2.6kg CO₂e saved", "delay": 1.0}
-]
 
 # --- STATE INITIALIZATION ---
 defaults = {"scanned": False, "inventory": [], "selected_recipe": None, "auto_mode": False, "agent_done": False, "favorites": set(), "nav_view": "📷 Smart Scanner"}
@@ -624,102 +617,9 @@ elif view == "🛒 Local Market":
     
     st.toggle("Enable Nourri Auto-Pilot", key="auto_mode")
     
-    if False:
-        # Smart Basket
-        st.markdown("""
-<div class="n-card" style="background:#fff; border-top: 4px solid #1c6b42;">
-<h4 style="margin:0 0 20px 0; color:#0c2218; font-size:16px;">🛒 Your Curated Basket</h4>
-<div style="background:#fafaf8; border:1px solid #e5e7eb; border-radius:12px; padding:16px;">
-<div style="display:flex; justify-content:space-between; margin-bottom:12px; font-size:14px; color:#0c2218; font-weight:500;">
-<span>🥬 Baby Spinach 300g <span style="color:#6b7d72; font-size:12px; margin-left:8px;">Radicle Urban Farms</span></span> <b>€2.80</b>
-</div>
-<div style="display:flex; justify-content:space-between; margin-bottom:12px; font-size:14px; color:#0c2218; font-weight:500;">
-<span>🥛 Oat Milk 2×1L <span style="color:#6b7d72; font-size:12px; margin-left:8px;">Radicle Urban Farms</span></span> <b>€3.80</b>
-</div>
-<div style="display:flex; justify-content:space-between; padding-bottom:16px; border-bottom:1px solid #e5e7eb; font-size:14px; color:#0c2218; font-weight:500;">
-<span>🥚 Free-Range Eggs 12-pack <span style="color:#6b7d72; font-size:12px; margin-left:8px;">Green Valley Cooperative</span></span> <b>€4.20</b>
-</div>
-<div style="display:flex; justify-content:space-between; margin-top:16px; align-items:center;">
-<span style="font-size:13px; color:#15803d; font-weight:600;">3 items · 2 local farms · saves 2.6 kg CO₂e</span>
-<span style="font-size:18px; font-weight:800; color:#0c2218;">Total: €10.80</span>
-</div>
-</div>
-</div>
-""", unsafe_allow_html=True)
-        
-        # Agent Trace Panel
-        st.markdown("""
-<div class="n-card" style="padding:0; overflow:hidden;">
-<div style="padding:20px; border-bottom:1px solid #dde4df; display:flex; justify-content:space-between; align-items:center; background:#fafaf8;">
-<h3 style="margin:0; font-size:16px; color:#0c2218; font-weight:700;">How Nourri Decides</h3>
-<span class="n-badge" style="background:#dcfce7; color:#15803d;">Auto-Pilot Active</span>
-</div>
-<div style="padding:24px;" id="agent-container">
-""", unsafe_allow_html=True)
-        
-        if st.button("✨ Let Nourri Handle It", disabled=st.session_state.agent_done, type="primary"):
-            placeholders = [st.empty() for _ in range(5)]
-            audit_placeholder = st.empty()
-            
-            for idx, step in enumerate(AGENT_STEPS):
-                time.sleep(step['delay'])
-                with placeholders[idx]:
-                    if step.get('guardrails'):
-                        st.markdown(f"""
-<div style="margin-bottom:24px;">
-<div style="font-weight:700; font-size:13px; color:#0c2218; margin-bottom:12px;">{step['label']}</div>
-<div style="background:#f0fdf4; border:1px solid #86efac; padding:10px 14px; border-radius:8px; margin-bottom:6px; font-size:12px; color:#15803d; font-weight:600;">✅ Budget check — €10.80 < €20.00 → auto-approval eligible</div>
-<div style="background:#f0fdf4; border:1px solid #86efac; padding:10px 14px; border-radius:8px; margin-bottom:6px; font-size:12px; color:#15803d; font-weight:600;">✅ Allergen scan — No conflict with user profile</div>
-<div style="background:#f0fdf4; border:1px solid #86efac; padding:10px 14px; border-radius:8px; margin-bottom:6px; font-size:12px; color:#15803d; font-weight:600;">✅ Partner trust gate — Radicle (4.8★) · Green Valley (4.9★) verified</div>
-<div style="background:#fff7ed; border:1px solid #fed7aa; padding:10px 14px; border-radius:8px; margin-bottom:6px; font-size:12px; color:#c2410c; font-weight:700;">⚠️ HITL GATE — €10.80 below €20 threshold → proceeding autonomously</div>
-<div style="background:#f0fdf4; border:1px solid #86efac; padding:10px 14px; border-radius:8px; font-size:12px; color:#15803d; font-weight:600;">✅ Carbon gate — local sourcing saves 2.6 kg CO₂e → within policy</div>
-</div>
-""", unsafe_allow_html=True)
-                    else:
-                        st.markdown(f"""
-<div style="margin-bottom:24px;">
-<div style="font-weight:700; font-size:13px; color:#0c2218; margin-bottom:8px;">{step['label']}</div>
-<div style="background:#0c2218; color:#86efac; padding:12px; border-radius:8px; font-family:monospace; font-size:11.5px; white-space:pre-wrap; margin-bottom:4px;">→ {step['call']}</div>
-<div style="background:#f0fdf4; border:1px solid #bbf7d0; color:#166534; padding:12px; border-radius:8px; font-family:monospace; font-size:11px; margin-bottom:8px;">← {step['response']}</div>
-<div style="font-size:13px; font-weight:600; color:#0c2218;">{step['insight']}</div>
-</div>
-""", unsafe_allow_html=True)
-            
-            st.session_state.agent_done = True
-            
-            with audit_placeholder:
-                st.markdown("""
-<div style="background:#0c2218; color:#86efac; padding:20px; border-radius:16px; font-family:monospace; font-size:11px; margin-top:16px;">
-2026-06-17T12:32:11Z  agent=nourri-replenishment-v1.2  task=auto_reorder
-tool_calls=3  guardrails_checked=5  guardrails_passed=5
-hitl_required=false  items_ordered=3  total=€10.80  co2_saved=2.6kg
-confidence=0.94  order_id=NR-20260617-0891  status=COMPLETED  duration=6.1s
-── RESPONSIBLE AI METRICS ─────────────────────────────────────────
-[ROBUSTNESS]  adversarial_pass_rate=87%  edge_case_pass_rate=94%
-[BIAS]        max_disparity_across_segments=3.8pp  threshold=10pp  ✅ PASS
-[CARBON]      tokens_per_run=4,847  energy=0.0015 kWh  co2eq=0.090 gCO₂eq
-[EXPLAINABILITY] trace_completeness=100%  user_explanation=clear (10/10)
-</div>
-<div style="background:linear-gradient(135deg, #1c6b42, #155235); padding:16px; border-radius:12px; margin-top:20px; color:white; font-weight:600; font-size:14px; text-align:center; box-shadow:0 4px 12px rgba(28,107,66,0.2);">
-🎉 Order processed successfully · Ref NR-20260617-0891 confirmed · Delivery by 14:45
-</div>
-<div style="background: linear-gradient(135deg, #0c2218, #1c6b42); color: white; text-align: center; padding: 32px; border-radius: 20px; margin-top: 24px;">
-    <div style="color: #86efac; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px;">Done in 6 seconds ✨</div>
-    <div style="font-size: 26px; font-weight: 800;">€10.80 restocked · 2.6 kg CO₂e prevented</div>
-    <div style="color: #86efac; font-size: 13px; margin-top: 8px;">Nourri ordered from 2 local farms — no action needed from you</div>
-    <div style="display: flex; justify-content: center; gap: 12px; margin-top: 20px;">
-        <span style="background: rgba(255,255,255,0.15); border-radius: 99px; padding: 6px 14px; font-size: 12px; font-weight: 600;">✅ All safety checks passed</span>
-        <span style="background: rgba(255,255,255,0.15); border-radius: 99px; padding: 6px 14px; font-size: 12px; font-weight: 600;">🌿 Sourced locally</span>
-        <span style="background: rgba(255,255,255,0.15); border-radius: 99px; padding: 6px 14px; font-size: 12px; font-weight: 600;">⚡ Fully autonomous</span>
-    </div>
-</div>
-""", unsafe_allow_html=True)
-                
-            if st.button("↺ Run Again", type="secondary"):
-                st.session_state.agent_done = False
-                st.rerun()
-                
-        st.markdown("</div></div>", unsafe_allow_html=True) # Close agent container & card
+    # --- LIVE ORDERING AGENT (real LangGraph agent — Deliverable 4) ---
+    from live_agent_panel import render_live_agent_panel
+    render_live_agent_panel()
         
     # Partners Grid
     st.markdown('<div class="section-title" style="margin-top:32px;">Our Local Farm Partners</div>', unsafe_allow_html=True)

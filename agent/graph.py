@@ -1,14 +1,16 @@
-import os
 from typing import TypedDict, List, Dict, Any, Annotated
 import operator
+from datetime import datetime, timezone
 
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.graph import StateGraph, START, END
 from langgraph.prebuilt import ToolNode
 from langgraph.checkpoint.memory import MemorySaver
 
-from agent.tools import check_local_producer, check_supermarket_fallback
+from agent.tools import get_tools
+from agent.llm import get_llm
+from agent.trace import log_event
+from agent.util import content_text
 from guardrails.input_validation import validate_input
 
 class OrderState(TypedDict):
@@ -18,16 +20,14 @@ class OrderState(TypedDict):
     total_price: float
     status: str # "sourcing", "awaiting_approval", "ordered", "cancelled", "error"
     error_message: str
+    order_id: str
 
 def create_agent_graph():
-    # Initialize LLM
-    llm = ChatGoogleGenerativeAI(
-        model="gemini-2.0-flash",
-        temperature=0,
-        api_key=os.environ.get("GEMINI_API_KEY", "dummy") # Handled by env
-    )
-    
-    tools = [check_local_producer, check_supermarket_fallback]
+    # Tools: prefer the MCP catalog server, fall back to in-process tools.
+    tools = get_tools()
+
+    # Model: real Gemini if GEMINI_API_KEY is set, else a deterministic mock.
+    llm = get_llm()
     llm_with_tools = llm.bind_tools(tools)
     
     # Define Nodes
@@ -35,11 +35,14 @@ def create_agent_graph():
         ingredients = state.get("missing_ingredients", [])
         validation = validate_input(ingredients)
         if not validation["valid"]:
+            log_event("guardrail.input_validation", triggered=True,
+                      reason=validation["reason"], input=ingredients)
             return {
-                "status": "error", 
+                "status": "error",
                 "error_message": validation["reason"],
                 "messages": [AIMessage(content=f"Guardrail triggered: {validation['reason']}")]
             }
+        log_event("guardrail.input_validation", triggered=False, items=len(ingredients))
         return {"status": "sourcing"}
 
     def sourcing_agent(state: OrderState):
@@ -52,43 +55,62 @@ def create_agent_graph():
         response = llm_with_tools.invoke(messages)
         return {"messages": [response]}
         
-    tool_node = ToolNode(tools)
-    
+    # Wrap ToolNode so every tool call and result is written to the audit log.
+    base_tool_node = ToolNode(tools)
+
+    def tool_node(state: OrderState):
+        last = state["messages"][-1]
+        for tc in getattr(last, "tool_calls", None) or []:
+            log_event("tool.call", name=tc.get("name"), args=tc.get("args"))
+        result = base_tool_node.invoke(state)
+        for msg in result.get("messages", []):
+            log_event("tool.result", name=getattr(msg, "name", ""),
+                      result=content_text(msg.content))
+        return result
+
     def process_cart(state: OrderState):
-        # In a real system, the LLM would emit a structured output.
-        # Here we simulate cart processing based on the tool messages history.
+        # Compile the cart from the sourcing tool results in the message history.
+        import json
         cart = []
         total = 0.0
-        
-        # Simple extraction from tool messages for demo purposes
+        seen = set()  # dedup by ingredient; local results come first, so local wins
+
         for msg in state["messages"]:
-            if getattr(msg, "name", "") in ["check_local_producer", "check_supermarket_fallback"]:
-                try:
-                    import json
-                    data = json.loads(msg.content)
-                    if data.get("available"):
-                        # Extract ingredient name from the tool call that generated this
-                        # This is a bit hacky for the demo, normally we'd use a structured output LLM node
-                        cart.append({
-                            "source": data.get("source"),
-                            "price": data.get("price")
-                        })
-                        total += float(data.get("price", 0))
-                except Exception:
-                    pass
-        
-        return {
-            "cart": cart,
-            "total_price": round(total, 2),
-            "status": "awaiting_approval"
-        }
+            tool_name = getattr(msg, "name", "")
+            if tool_name not in ("check_local_producer", "check_supermarket_fallback"):
+                continue
+            try:
+                data = json.loads(content_text(msg.content))
+            except (ValueError, TypeError):
+                continue
+            ingredient = data.get("ingredient")
+            if data.get("available") and ingredient not in seen:
+                seen.add(ingredient)
+                cart.append({
+                    "ingredient": ingredient,
+                    "source": data.get("source"),
+                    "price": data.get("price"),
+                    "channel": "local" if tool_name == "check_local_producer" else "supermarket",
+                })
+                total += float(data.get("price", 0))
+
+        total = round(total, 2)
+        log_event("cart.compiled", items=len(cart), total_price=total,
+                  cart=cart, status="awaiting_approval")
+        return {"cart": cart, "total_price": total, "status": "awaiting_approval"}
         
     def order_execution(state: OrderState):
         if state["status"] == "cancelled":
+            log_event("order.cancelled", total_price=state.get("total_price", 0.0),
+                      items=len(state.get("cart", [])))
             return {"messages": [AIMessage(content="Order was cancelled by the user.")]}
+        order_id = f"NR-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
+        log_event("order.placed", order_id=order_id, total_price=state["total_price"],
+                  items=len(state.get("cart", [])))
         return {
             "status": "ordered",
-            "messages": [AIMessage(content=f"Order placed successfully for €{state['total_price']}.")]
+            "order_id": order_id,
+            "messages": [AIMessage(content=f"Order placed successfully for €{state['total_price']}. Ref {order_id}")]
         }
 
     # Build Graph
