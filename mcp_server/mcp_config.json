@@ -1,0 +1,22 @@
+{
+  "mcpServers": {
+    "nourri-sourcing-catalog": {
+      "command": "python",
+      "args": ["-m", "mcp_server.catalog_server"],
+      "transport": "stdio",
+      "description": "Local-producer + supermarket sourcing catalog for Nourri.",
+      "tools": ["check_local_producer", "check_supermarket_fallback"],
+      "permissions": {
+        "access": "read-only",
+        "write_actions": [],
+        "notes": "Catalog lookups only. The server cannot place orders; ordering stays behind the in-app HITL gate."
+      },
+      "scopes": ["catalog:read"],
+      "rate_limits": {
+        "max_requests_per_minute": 60,
+        "max_concurrent_sessions": 4,
+        "timeout_seconds": 10
+      }
+    }
+  }
+}

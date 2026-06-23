@@ -1,6 +1,16 @@
-langchain
-langchain-google-genai
-langgraph
+# Core agent framework (Deliverable 3)
+langgraph>=1,<2
+langchain>=1,<2
+langchain-core>=1,<2
+
+# Model — real path; the mock fallback in agent/llm.py needs no key
+langchain-google-genai>=4,<5
+
+# MCP server (FastMCP) + client adapter (Deliverable 3)
+fastmcp>=3,<4
+langchain-mcp-adapters>=0.3,<1
+
+# App + utilities
 streamlit
 python-dotenv
 pytest

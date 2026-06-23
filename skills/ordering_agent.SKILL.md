@@ -3,7 +3,7 @@ name: Missing Ingredient Ordering Agent
 description: Procedural knowledge for the agent responsible for sourcing and ordering missing ingredients.
 version: 1.0.0
 model_hints:
-  - gemini-1.5-flash
+  - gemini-2.0-flash
   - gpt-4o-mini
 ---
 
