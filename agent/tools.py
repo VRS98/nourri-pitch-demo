@@ -31,7 +31,14 @@ def check_local_producer(ingredient: str) -> str:
         JSON string with availability, price, and source.
     """
     time.sleep(0.3)  # simulate network latency
-    return json.dumps(lookup_local(ingredient))
+    for attempt in range(2):
+        try:
+            return json.dumps(lookup_local(ingredient))
+        except Exception:
+            if attempt == 0:
+                time.sleep(1)
+            else:
+                raise
 
 
 @tool
@@ -46,7 +53,14 @@ def check_supermarket_fallback(ingredient: str) -> str:
         JSON string with availability, price, and source.
     """
     time.sleep(0.3)  # simulate network latency
-    return json.dumps(lookup_supermarket(ingredient))
+    for attempt in range(2):
+        try:
+            return json.dumps(lookup_supermarket(ingredient))
+        except Exception:
+            if attempt == 0:
+                time.sleep(1)
+            else:
+                raise
 
 
 # The in-process tools, used directly as the fallback path.

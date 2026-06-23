@@ -1,5 +1,11 @@
 import re
 
+REFUSE_PATTERNS = [
+    r"ignore previous", r"system prompt", r"system instructions", r"you are a", r"forget", 
+    r"bypass", r"execute", r"import os", r"password", r"drop table",
+    r"gun", r"weapon", r"poison", r"bomb"
+]
+
 def validate_input(ingredients_list: list) -> dict:
     """
     Guardrail: Validates input to prevent prompt injection or out-of-scope requests.
@@ -11,19 +17,13 @@ def validate_input(ingredients_list: list) -> dict:
     # Guardrail: Limit number of items to prevent abuse
     if len(ingredients_list) > 10:
         return {"valid": False, "reason": "Maximum of 10 missing ingredients allowed per order."}
-    
-    # Guardrail: Simple refuse list for prompt injection / non-food items
-    refuse_patterns = [
-        r"ignore previous", r"system prompt", r"you are a", r"forget", 
-        r"bypass", r"execute", r"import os", r"password", r"drop table",
-        r"gun", r"weapon", r"poison", r"bomb"
-    ]
+
     
     for item in ingredients_list:
         if not isinstance(item, str):
             return {"valid": False, "reason": "Invalid data type. Must be a list of strings."}
             
-        for pattern in refuse_patterns:
+        for pattern in REFUSE_PATTERNS:
             if re.search(pattern, item, re.IGNORECASE):
                 return {"valid": False, "reason": f"Input '{item}' violates security policies."}
                 

@@ -47,6 +47,11 @@ def create_agent_graph():
 
     def sourcing_agent(state: OrderState):
         messages = state["messages"]
+        # Guardrail: Token Budget Check (proxy by message count)
+        if len(messages) > 15:
+            log_event("guardrail.token_budget", triggered=True, count=len(messages))
+            return {"status": "error", "error_message": "Token budget exceeded (too many turns).", "messages": [AIMessage(content="Guardrail triggered: Token budget exceeded.")]}
+            
         # If it's the first time sourcing
         if len(messages) == 0 or (len(messages) == 1 and isinstance(messages[0], AIMessage) and "Guardrail" in messages[0].content):
             sys_msg = HumanMessage(content=f"Find sourcing for these missing ingredients: {', '.join(state['missing_ingredients'])}. Always check local producers first. If local is unavailable, check supermarket fallback. Once you have checked all items, compile the results and call the finalize_cart tool or just state you are done.")
@@ -59,13 +64,20 @@ def create_agent_graph():
     base_tool_node = ToolNode(tools)
 
     def tool_node(state: OrderState):
+        from guardrails.input_validation import REFUSE_PATTERNS
+        import re
         last = state["messages"][-1]
         for tc in getattr(last, "tool_calls", None) or []:
             log_event("tool.call", name=tc.get("name"), args=tc.get("args"))
         result = base_tool_node.invoke(state)
+        # Guardrail: Sanitize tool outputs
         for msg in result.get("messages", []):
+            content = content_text(msg.content)
+            for pattern in REFUSE_PATTERNS:
+                content = re.sub(pattern, "[REDACTED]", content, flags=re.IGNORECASE)
+            msg.content = content
             log_event("tool.result", name=getattr(msg, "name", ""),
-                      result=content_text(msg.content))
+                      result=content)
         return result
 
     def process_cart(state: OrderState):

@@ -1,0 +1,9 @@
+flowchart TD
+    A([START · missing ingredients]) --> V["validate<br/>input-validation guardrail"]
+    V -->|invalid| E1([END · error returned])
+    V -->|valid| AG["agent · ReAct loop<br/>LLM reasons, picks a tool"]
+    AG -->|tool call| T["tools<br/>check_local_producer<br/>check_supermarket_fallback"]
+    T --> AG
+    AG -->|no more tools| PC["process_cart<br/>aggregate items + total price"]
+    PC -. HITL gate · interrupt_before .-> EX["execute<br/>place order"]
+    EX --> E2([END · order placed / cancelled])

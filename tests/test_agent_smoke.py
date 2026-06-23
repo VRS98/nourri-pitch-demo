@@ -17,11 +17,26 @@ def _graph(monkeypatch):
 
 
 def test_end_to_end_run_and_approve(monkeypatch):
+    import time
     g = _graph(monkeypatch)
+    
+    start_time = time.time()
     res = run_to_approval(g, ["eggs", "harissa paste"])
+    end_time = time.time()
 
     assert res["status"] == "awaiting_approval"
-    assert {c["ingredient"] for c in res["cart"]} == {"eggs", "harissa paste"}
+    
+    # Success metric: ≥ 90% of missing ingredients sourced
+    ingredients_requested = {"eggs", "harissa paste"}
+    ingredients_sourced = {c["ingredient"] for c in res["cart"]}
+    coverage = len(ingredients_sourced) / len(ingredients_requested)
+    assert coverage >= 0.90, f"Coverage {coverage*100}% is below 90% threshold"
+    
+    # Success metric: HITL gate reached in < 30 s per run
+    duration = end_time - start_time
+    assert duration < 30, f"Execution took {duration}s, exceeding 30s threshold"
+
+    assert ingredients_sourced == ingredients_requested
     assert res["total_price"] == 6.3
 
     channels = {c["ingredient"]: c["channel"] for c in res["cart"]}
